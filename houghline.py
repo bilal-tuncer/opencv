@@ -12,6 +12,7 @@ for line in lines2:
     x1,y1,x2,y2 = line[0]
     cv.line(img2,(x1,y1),(x2,y2),(0,255,0),2)
 
+
 for line in lines:
     rho,theta = line[0]
     a = np.cos(theta)
