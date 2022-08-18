@@ -20,7 +20,9 @@ def drectangle(event,x,y,flag,param):
         cv.rectangle(img,(tx,ty),(x,y),(0,0,255),2)
     if event == cv.EVENT_LBUTTONUP:
         draw = False
-    
+        newimg = img0[ty:y,tx:x,:]
+        cv.imshow("new",newimg)
+        cv.waitKey(0)
 
 img0 = cv.imread("cars.jpg")
 img0 = cv.pyrDown(img0)
