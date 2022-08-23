@@ -1,7 +1,7 @@
 
 import cv2 as cv
 
-cap = cv.VideoCapture("output.avi")
+cap = cv.VideoCapture("out_video.avi")
 fps = cap.get(cv.CAP_PROP_FPS)
 frame_wait = int(1000/fps)
 if not cap.isOpened():
