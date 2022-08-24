@@ -3,6 +3,18 @@ import gi
 gi.require_version("Gtk","3.0")
 from gi.repository import Gtk
 
+class scaleWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="ScaleBar Demo")
+        self.set_border_width(100)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.add(vbox)
+
+        self.scalebar = Gtk.Scale().new_with_range(orientation=Gtk.Orientation.HORIZONTAL, min=0.0, max=3.26, step=0.01)
+        vbox.pack_start(self.scalebar,True,True,0)
+
+
+
 
 class ProgressBarWindow(Gtk.Window):
     def __init__(self):
@@ -69,7 +81,8 @@ class ProgressBarWindow(Gtk.Window):
         return True
 
 
-win = ProgressBarWindow()
+
+win = scaleWindow()
 
 win.connect("destroy", Gtk.main_quit)
 
