@@ -1,9 +1,12 @@
 import cv2 as cv
 import gi
+import numpy as np
 
 gi.require_version("Gtk","3.0")
 from gi.repository import Gtk
+from gi.repository import GdkPixbuf
 
+img_flag = False
 cutInterval = None
 gl_size = None
 gl_fps = None
@@ -12,88 +15,105 @@ gl_fourcc = 'XVID'
 class Scale(Gtk.Window):
     strt = None
     finsh = None
-    def __init__(self,video_time,org_fps):
+    def __init__(self,in_fp,video_time,org_fps):
         Gtk.Window.__init__(self)
-        self.set_default_size(300, 300)
+        self.set_default_size(375, 700)
         self.connect("destroy", self.close)
-
+        scrolledwindow = Gtk.ScrolledWindow()
+        self.add(scrolledwindow)
+        
         grid = Gtk.Grid()
         grid.set_border_width(10)
         grid.set_row_spacing(3)
         grid.set_column_spacing(1)
 
-        self.add(grid)
-
+        scrolledwindow.add(grid)
+        self.org_fps = org_fps
         label1 = Gtk.Label(label="Chose an interval to cut the video")
-        grid.attach(label1,0,0,2,1)
+        grid.attach(label1,0,1,2,1)
 
-        self.scale = Gtk.Scale().new_with_range(orientation=Gtk.Orientation.HORIZONTAL,min =0.0,max = video_time, step=0.01)
-        self.scale.set_value_pos(Gtk.PositionType.TOP)
-        self.scale.set_size_request(300,60)
-        grid.attach(self.scale, 0, 1, 2, 1)
+        self.scale = Gtk.Scale().new_with_range(orientation=Gtk.Orientation.HORIZONTAL,min =0.0,max = video_time, step=0.1)
+        self.scale.set_size_request(300,20)
+        self.scale.set_draw_value(False)
+        self.scale.connect("value-changed", self.reframe)
+        grid.attach(self.scale, 0, 2, 2, 1)
+
+        self.label = Gtk.Label(label=seconds_to_m_s_ms(0))
+        grid.attach(self.label,0,3,2,1)
 
         buttonS = Gtk.Button(label="Start")
         buttonS.connect("clicked", self.start_button)
-        grid.attach(buttonS, 0, 2, 1, 1)
+        grid.attach(buttonS, 0, 4, 1, 1)
 
         buttonF = Gtk.Button(label="Finish")
         buttonF.connect("clicked", self.finish_button)
         buttonF.set_size_request(147,30)
-        grid.attach(buttonF, 1, 2, 2, 1)
+        grid.attach(buttonF, 1, 4, 2, 1)
 
         buttonClear = Gtk.Button(label="Clear")
         buttonClear.connect("clicked", self.clear_choice)
-        grid.attach(buttonClear, 0, 3, 2, 1)
+        grid.attach(buttonClear, 0, 5, 2, 1)
 
         buttonCut = Gtk.Button(label="Cut")
         buttonCut.connect("clicked", self.cut_vid)
         buttonCut.set_size_request(300,30)
-        grid.attach(buttonCut, 0, 4, 2, 1)
+        grid.attach(buttonCut, 0, 6, 2, 1)
 
         label2 = Gtk.Label(label="Enter size")
         label2.set_size_request(300,30)
-        grid.attach(label2,0,5,2,1)
+        grid.attach(label2,0,7,2,1)
 
         self.width_entry = Gtk.Entry()
         self.width_entry.set_placeholder_text("Enter 'Width'")
         self.width_entry.set_size_request(150,30)
-        grid.attach(self.width_entry, 0, 6, 1, 1)
+        grid.attach(self.width_entry, 0, 8, 1, 1)
 
         self.height_entry = Gtk.Entry()
         self.height_entry.set_placeholder_text("Enter 'Height'")
         self.height_entry.set_size_request(150,30)
-        grid.attach(self.height_entry, 1, 6, 1, 1)
+        grid.attach(self.height_entry, 1, 8, 1, 1)
 
         button_size = Gtk.Button(label="Add")
         button_size.connect("clicked", self.save_size)
-        grid.attach(button_size, 0, 7, 2, 1)
+        grid.attach(button_size, 0, 9, 2, 1)
 
         label3 = Gtk.Label(label="")
         label3.set_size_request(300,10)
-        grid.attach(label3,0,8,2,1)
+        grid.attach(label3,0,10,2,1)
 
         label = Gtk.Label(label="FPS :")
-        grid.attach(label,0,9,1,1)
+        grid.attach(label,0,11,1,1)
 
         self.fps_entry = Gtk.Entry()
         self.fps_entry.set_placeholder_text("{}".format(org_fps))
-        grid.attach(self.fps_entry,1,9,1,1)
+        grid.attach(self.fps_entry,1,11,1,1)
 
         label = Gtk.Label(label="FOURCC :")
-        grid.attach(label,0,10,1,1)
+        grid.attach(label,0,12,1,1)
 
         self.fourcc_entry = Gtk.Entry()
         self.fourcc_entry.set_placeholder_text("XVID")
-        grid.attach(self.fourcc_entry,1,10,1,1)
+        grid.attach(self.fourcc_entry,1,12,1,1)
 
         label3 = Gtk.Label(label="")
         label3.set_size_request(300,10)
-        grid.attach(label3,0,11,2,1)
+        grid.attach(label3,0,13,2,1)
 
         save_button = Gtk.Button(label="Save Changes")
         save_button.connect("clicked", self.saveAll)
         save_button.set_size_request(250,30)
-        grid.attach(save_button, 0,12,2,1)
+        grid.attach(save_button, 0,14,2,1)
+
+        self.frame = Gtk.Frame()
+        self.frame.set_size_request(335,270)
+        self.frames = self.read_video(in_fp)
+        self.reframe(None)
+        grid.attach(self.frame,0,0,2,1)
+
+        filechooserbutton = Gtk.FileChooserButton(title="FileChooserButton")
+        filechooserbutton.connect("file-set", self.file_changed)
+        grid.attach(filechooserbutton,0,15,2,1)
+        
 
 
 
@@ -137,6 +157,44 @@ class Scale(Gtk.Window):
             gl_fourcc = fourcc
         Gtk.main_quit()
 
+    def read_video(self,in_fp):
+        cap = cv.VideoCapture(in_fp)
+        if not cap.isOpened():
+            print("Cannot open")
+            exit()
+        frames = []
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("read")
+                break
+            frames.append(frame)
+        return frames
+
+    def reframe(self,scale):
+        value = self.scale.get_value()
+        self.label.set_label(seconds_to_m_s_ms(value))
+        pic = self.frames[seconds_to_frame(value,self.org_fps)]
+        pic_xsize = 335
+        pic_ysize = 270
+        pic = cv.resize(pic, (pic_xsize,pic_ysize))
+        pic = cv.cvtColor(pic,cv.COLOR_BGR2RGB)
+        pic = np.array(pic).ravel()
+        pixbuf = GdkPixbuf.Pixbuf.new_from_data(pic,GdkPixbuf.Colorspace.RGB, False, 8, pic_xsize, pic_ysize, 3*pic_xsize)
+        image = Gtk.Image.new_from_pixbuf(pixbuf)
+        global img_flag
+        if img_flag == True:
+            self.frame.remove(self.Image)
+        else:
+            img_flag = True
+        self.Image = image
+        self.frame.add(self.Image)
+        self.frame.show_all()
+    
+    def file_changed(self,filechooserbutton):
+        print("File selected: %s" % filechooserbutton.get_filename())
+    
+
 def editVideo(in_fp, out_fp, cropPoints = None):
 
     cap = cv.VideoCapture(in_fp)
@@ -149,7 +207,7 @@ def editVideo(in_fp, out_fp, cropPoints = None):
 
     video_time = calc_time(org_fps,frame_number)
 
-    window = Scale(video_time,org_fps)
+    window = Scale(in_fp,video_time,org_fps)
     window.show_all()
     Gtk.main()
 
@@ -163,8 +221,8 @@ def editVideo(in_fp, out_fp, cropPoints = None):
     cutTS = cutInterval
     size = gl_size
     if cutTS != None:
-        start = minutes_to_frame(cutTS[0],org_fps)
-        end = minutes_to_frame(cutTS[1],org_fps)
+        start = seconds_to_frame(cutTS[0],org_fps)
+        end = seconds_to_frame(cutTS[1],org_fps)
         if start > end or end > frame_number:
             print("ERROR: Time steps is not compatible with {} file".format(in_fp))
             exit()
@@ -210,17 +268,19 @@ def editVideo(in_fp, out_fp, cropPoints = None):
 
 def calc_time(fps,frame_number):
     seconds = frame_number/fps
-    minutes = int(seconds/60)
-    fraction = seconds%60 / 100
-    print(minutes+fraction)
-    return minutes+fraction
+    return seconds
 
-def minutes_to_frame(m,fps):
-    s = ((100*m) % (100))
+def seconds_to_m_s_ms(s):
+    m = int(s/60)
+    ms = int((s%1)*1000)
+    s = int(s)
+    s = s%60
+    return "{}m {}s {}ms".format(m,s,ms)
+
+def seconds_to_frame(s,fps):
     quarter = int((s%1)*4)
-    s = int(s)  
-    m = int(m)
-    return (m*60 + s)*int(fps)+int(fps*(quarter/4))
+    s = int(s)
+    return s*int(fps)+int(fps*(quarter/4))
 
 def cropIMG(img,top_left,bottom_right):
     cropped = img[top_left[1]:bottom_right[1],top_left[0]:bottom_right[0],:]
