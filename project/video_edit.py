@@ -12,16 +12,76 @@ gl_size = None
 gl_fps = None
 gl_fourcc = 'XVID'
 
+class File(Gtk.Window):
+    in_fp = None
+    out_fp = None
+
+    def __init__(self):
+        Gtk.Window.__init__(self)
+        self.set_default_size(300, 120)
+        self.connect("destroy", close)
+        
+        self.grid = Gtk.Grid()
+        self.grid.set_border_width(50)
+        self.grid.set_row_spacing(10)
+        self.add(self.grid)
+
+        label = Gtk.Label(label="Input File")
+        self.grid.attach(label,0,0,2,1)
+
+        self.in_filechooserbutton = Gtk.FileChooserButton(title="FileChooserButton")
+        self.in_filechooserbutton.set_size_request(200,30)
+        self.in_filechooserbutton.connect("file-set", self.in_file_changed)
+        self.grid.attach(self.in_filechooserbutton,0,1,2,1)
+
+        label = Gtk.Label(label="")
+        self.grid.attach(label,0,2,2,1)
+        '''
+        self.out_filechooserbutton = Gtk.FileChooserButton(title="FileChooserButton")
+        self.out_filechooserbutton.connect("file-set", self.out_file_changed)
+        grid.attach(self.out_filechooserbutton,0,2,2,1)
+        '''
+        button = Gtk.Button(label="Save")
+        button.connect("clicked",self.save)
+        self.grid.attach(button,0,4,2,1)
+
+        self.spinner = Gtk.Spinner()
+
+
+    def in_file_changed(self,in_filechooserbutton):
+        print("Input file selected: %s" % in_filechooserbutton.get_filename())
+
+    def out_file_changed(self,out_filechooserbutton):
+        print("Output file selected: %s" % out_filechooserbutton.get_filename())
+
+    def save(self,button):
+        self.in_fp = self.in_filechooserbutton.get_filename()
+        self.remove(self.grid)
+        self.add(self.spinner)
+        self.spinner.start()
+        self.show_all()
+        #self.out_fp = self.out_filechooserbutton.get_filename()
+        Gtk.main_quit()
+
+
 class Scale(Gtk.Window):
     strt = None
     finsh = None
+    cropPoints = []
+    frame_orgsize = None
+    frame_small = None
+
     def __init__(self,in_fp,video_time,org_fps):
         Gtk.Window.__init__(self)
         self.set_default_size(375, 700)
-        self.connect("destroy", self.close)
+        self.connect("destroy", close)
         scrolledwindow = Gtk.ScrolledWindow()
         self.add(scrolledwindow)
         
+        self.org_frames = self.read_video(in_fp)
+        self.frames = self.org_frames.copy()
+        self.frame_small = self.rescale()
+
         grid = Gtk.Grid()
         grid.set_border_width(10)
         grid.set_row_spacing(3)
@@ -59,67 +119,86 @@ class Scale(Gtk.Window):
         buttonCut.set_size_request(300,30)
         grid.attach(buttonCut, 0, 6, 2, 1)
 
+        '''
+        cropGrid = Gtk.Grid()
+        cropGrid.set_size_request(350,100)
+        cropGrid.set_row_spacing(3)
+        cropGrid.set_column_spacing(1)
+        '''
+
+        label = Gtk.Label(label="")
+        label.set_size_request(300,5)
+        grid.attach(label,0,7,2,1)
+
+        label = Gtk.Label(label="Choose points from image (press a key to choose)")
+        label.set_size_request(300,30)
+        grid.attach(label,0,8,2,1)
+
+        self.togglebutton = Gtk.ToggleButton(label="Crop:Passive")
+        self.togglebutton.set_size_request(150,30)
+        self.togglebutton.connect("toggled",self.croptoggled)
+        grid.attach(self.togglebutton,0,9,1,1)
+        
+        clbutton = Gtk.Button(label="Clear Points")
+        clbutton.connect("clicked",self.clpoints)
+        grid.attach(clbutton,1,9,1,1)
+
         label2 = Gtk.Label(label="Enter size")
         label2.set_size_request(300,30)
-        grid.attach(label2,0,7,2,1)
+        grid.attach(label2,0,10,2,1)
 
         self.width_entry = Gtk.Entry()
         self.width_entry.set_placeholder_text("Enter 'Width'")
         self.width_entry.set_size_request(150,30)
-        grid.attach(self.width_entry, 0, 8, 1, 1)
+        grid.attach(self.width_entry, 0, 11, 1, 1)
 
         self.height_entry = Gtk.Entry()
         self.height_entry.set_placeholder_text("Enter 'Height'")
         self.height_entry.set_size_request(150,30)
-        grid.attach(self.height_entry, 1, 8, 1, 1)
+        grid.attach(self.height_entry, 1, 11, 1, 1)
 
         button_size = Gtk.Button(label="Add")
         button_size.connect("clicked", self.save_size)
-        grid.attach(button_size, 0, 9, 2, 1)
-
-        label3 = Gtk.Label(label="")
-        label3.set_size_request(300,10)
-        grid.attach(label3,0,10,2,1)
-
-        label = Gtk.Label(label="FPS :")
-        grid.attach(label,0,11,1,1)
-
-        self.fps_entry = Gtk.Entry()
-        self.fps_entry.set_placeholder_text("{}".format(org_fps))
-        grid.attach(self.fps_entry,1,11,1,1)
-
-        label = Gtk.Label(label="FOURCC :")
-        grid.attach(label,0,12,1,1)
-
-        self.fourcc_entry = Gtk.Entry()
-        self.fourcc_entry.set_placeholder_text("XVID")
-        grid.attach(self.fourcc_entry,1,12,1,1)
+        grid.attach(button_size, 0, 12, 2, 1)
 
         label3 = Gtk.Label(label="")
         label3.set_size_request(300,10)
         grid.attach(label3,0,13,2,1)
 
+        label = Gtk.Label(label="FPS :")
+        grid.attach(label,0,14,1,1)
+
+        self.fps_entry = Gtk.Entry()
+        self.fps_entry.set_placeholder_text("{}".format(org_fps))
+        grid.attach(self.fps_entry,1,14,1,1)
+
+        label = Gtk.Label(label="FOURCC :")
+        grid.attach(label,0,15,1,1)
+
+        self.fourcc_entry = Gtk.Entry()
+        self.fourcc_entry.set_placeholder_text("XVID")
+        grid.attach(self.fourcc_entry,1,15,1,1)
+
+        label3 = Gtk.Label(label="")
+        label3.set_size_request(300,10)
+        grid.attach(label3,0,16,2,1)
+
         save_button = Gtk.Button(label="Save Changes")
         save_button.connect("clicked", self.saveAll)
         save_button.set_size_request(250,30)
-        grid.attach(save_button, 0,14,2,1)
+        grid.attach(save_button, 0,17,2,1)
 
         self.frame = Gtk.Frame()
-        self.frame.set_size_request(335,270)
-        self.frames = self.read_video(in_fp)
+        self.frame.set_size_request(self.frame_small[0],self.frame_small[1])
         self.reframe(None)
         grid.attach(self.frame,0,0,2,1)
 
-        filechooserbutton = Gtk.FileChooserButton(title="FileChooserButton")
-        filechooserbutton.connect("file-set", self.file_changed)
-        grid.attach(filechooserbutton,0,15,2,1)
-        
+        grid.connect("key-press-event",self.chosen_points)
 
-
-
-    def close(self, window):
-        print("Program ended")
-        exit()
+    def rescale(self):
+        a = 335/self.frame_orgsize[0]
+        new_h = int(a*self.frame_orgsize[1])
+        return [335,new_h]
 
     def start_button(self, button):
         value = self.scale.get_value()
@@ -169,14 +248,15 @@ class Scale(Gtk.Window):
                 print("read")
                 break
             frames.append(frame)
+        self.frame_orgsize = [frames[0].shape[1],frames[0].shape[0]]
         return frames
 
     def reframe(self,scale):
         value = self.scale.get_value()
         self.label.set_label(seconds_to_m_s_ms(value))
         pic = self.frames[seconds_to_frame(value,self.org_fps)]
-        pic_xsize = 335
-        pic_ysize = 270
+        pic_xsize = self.frame_small[0]
+        pic_ysize = self.frame_small[1]
         pic = cv.resize(pic, (pic_xsize,pic_ysize))
         pic = cv.cvtColor(pic,cv.COLOR_BGR2RGB)
         pic = np.array(pic).ravel()
@@ -190,12 +270,65 @@ class Scale(Gtk.Window):
         self.Image = image
         self.frame.add(self.Image)
         self.frame.show_all()
+
+
+    def chosen_points(self,widget,key):
+        if self.togglebutton.get_active():
+            chosen = [self.frame.get_pointer()[0],self.frame.get_pointer()[1]]
+            if chosen[1] > self.frame_small[1] or chosen[0] > self.frame_small[0] or chosen[0]<0 or chosen[1]<0:
+                print("Choose a point inside the picture !")
+            else:    
+                print(chosen)
+                point = pts_of_orgsize(self.frame_orgsize,self.frame_small,chosen)
+                print(point)
+                self.cropPoints.append(point)
+                if len(self.cropPoints) < 2:
+                    add_pt_to_frames(point,self.frames)
+                elif len(self.cropPoints) == 2:
+                    self.frames = self.org_frames.copy()
+                    add_rect_to_frames(self.cropPoints,self.frames)
+            self.reframe(None)
+
     
-    def file_changed(self,filechooserbutton):
-        print("File selected: %s" % filechooserbutton.get_filename())
-    
+    def croptoggled(self,button):
+        if button.get_active():
+            button.set_active(True)
+            button.set_label("Crop:Active")
+        else:
+            button.set_active(False)
+            button.set_label("Crop:Passive")
+
+    def clpoints(self,button):
+        self.cropPoints.clear()
+        self.frames = self.org_frames.copy()
+
+def close(window):
+        print("Program terminated")
+        exit()
+
+def pts_of_orgsize(org,temp,pt):
+    org_pt = []
+    org_pt.append(int(org[0]/temp[0] * pt[0]))
+    org_pt.append(int(org[1]/temp[1] * pt[1]))
+    return org_pt
+
+def add_pt_to_frames(point,frames):
+    for i in frames:
+        cv.circle(i,point,2,(0,0,255),2)
+
+def add_rect_to_frames(points,frames):
+    for i in frames:
+        cv.rectangle(i,points[0],points[1],(0,255,0),2)
 
 def editVideo(in_fp, out_fp, cropPoints = None):
+
+    filewin = File()
+    filewin.show_all()
+    Gtk.main()
+
+    if filewin.in_fp:    
+        in_fp = filewin.in_fp
+    #out_fp = filewin.out_fp
 
     cap = cv.VideoCapture(in_fp)
     if not cap.isOpened():
