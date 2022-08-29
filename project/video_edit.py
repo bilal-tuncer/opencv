@@ -61,7 +61,8 @@ class File(Gtk.Window):
         self.spinner.start()
         self.show_all()
         #self.out_fp = self.out_filechooserbutton.get_filename()
-        Gtk.main_quit()
+        Gtk.main_quit(self)
+        self.hide()
 
 
 class Scale(Gtk.Window):
@@ -78,8 +79,9 @@ class Scale(Gtk.Window):
         scrolledwindow = Gtk.ScrolledWindow()
         self.add(scrolledwindow)
         
-        self.org_frames = self.read_video(in_fp)
-        self.frames = self.org_frames.copy()
+        self.frames = self.read_video(in_fp)
+        self.clean = np.zeros((self.frame_orgsize[1],self.frame_orgsize[0],3),dtype= np.uint8)
+        self.layer = self.clean.copy()
         self.frame_small = self.rescale()
 
         grid = Gtk.Grid()
@@ -234,6 +236,8 @@ class Scale(Gtk.Window):
             gl_fps = fps
         if fourcc:
             gl_fourcc = fourcc
+        if not self.cropPoints:
+            self.cropPoints = None
         Gtk.main_quit()
 
     def read_video(self,in_fp):
@@ -255,6 +259,11 @@ class Scale(Gtk.Window):
         value = self.scale.get_value()
         self.label.set_label(seconds_to_m_s_ms(value))
         pic = self.frames[seconds_to_frame(value,self.org_fps)]
+        gray = cv.cvtColor(self.layer,cv.COLOR_BGR2GRAY)
+        mask = cv.inRange(gray,10,255)
+        mask = cv.bitwise_not(mask)
+        masked_pic = cv.bitwise_and(pic,pic,mask=mask)
+        pic = cv.add(masked_pic,self.layer)
         pic_xsize = self.frame_small[0]
         pic_ysize = self.frame_small[1]
         pic = cv.resize(pic, (pic_xsize,pic_ysize))
@@ -278,15 +287,13 @@ class Scale(Gtk.Window):
             if chosen[1] > self.frame_small[1] or chosen[0] > self.frame_small[0] or chosen[0]<0 or chosen[1]<0:
                 print("Choose a point inside the picture !")
             else:    
-                print(chosen)
                 point = pts_of_orgsize(self.frame_orgsize,self.frame_small,chosen)
-                print(point)
                 self.cropPoints.append(point)
                 if len(self.cropPoints) < 2:
-                    add_pt_to_frames(point,self.frames)
+                    cv.circle(self.layer,point,2,(0,0,255),2)
                 elif len(self.cropPoints) == 2:
-                    self.frames = self.org_frames.copy()
-                    add_rect_to_frames(self.cropPoints,self.frames)
+                    self.layer = self.clean.copy()
+                    cv.rectangle(self.layer,self.cropPoints[0],self.cropPoints[1],(0,255,0),2)
             self.reframe(None)
 
     
@@ -300,7 +307,8 @@ class Scale(Gtk.Window):
 
     def clpoints(self,button):
         self.cropPoints.clear()
-        self.frames = self.org_frames.copy()
+        self.layer = self.clean.copy()
+        self.reframe(None)
 
 def close(window):
         print("Program terminated")
@@ -320,7 +328,7 @@ def add_rect_to_frames(points,frames):
     for i in frames:
         cv.rectangle(i,points[0],points[1],(0,255,0),2)
 
-def editVideo(in_fp, out_fp, cropPoints = None):
+def editVideo(in_fp, out_fp):
 
     filewin = File()
     filewin.show_all()
@@ -344,6 +352,7 @@ def editVideo(in_fp, out_fp, cropPoints = None):
     window.show_all()
     Gtk.main()
 
+    cropPoints = window.cropPoints
     fps = gl_fps
     fourccode = gl_fourcc
     if fps == None:
@@ -423,4 +432,4 @@ if __name__ == "__main__":
     input_path = "sample.mp4"
     output_path = "out_video.avi"
 
-    editVideo(input_path,output_path,cropPoints= [[150,150],[400,400]])
+    editVideo(input_path,output_path)
