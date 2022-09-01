@@ -1,0 +1,6 @@
+REQUIREMENTS
+
+python opencv library
+python gi library >> Gtk, GdkPixBuff
+python numpy library
+python os library
