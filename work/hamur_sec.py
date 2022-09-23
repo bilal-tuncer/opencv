@@ -23,7 +23,6 @@ while True:
     
     
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-    #hsv = frame
 
     minH = cv.getTrackbarPos('minH','cam')
     maxH = cv.getTrackbarPos('maxH','cam')

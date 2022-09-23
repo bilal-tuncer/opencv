@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 import os 
 
-for root, dirs, files in os.walk("/home/bil/git_code/work/Rakamlar(RGB)"):
+for root, dirs, files in os.walk("/home/bil/Documents/Rakamlar(RGB)"):
     for file in files:
         if file.endswith(".jpg"):
             path = os.path.join(root, file)
