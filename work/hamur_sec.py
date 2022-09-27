@@ -6,30 +6,30 @@ def nothing(aa):
 
 
 cv.namedWindow("cam")
-cv.createTrackbar('minH','cam',0,255,nothing)
-cv.createTrackbar('maxH','cam',0,255,nothing)
-cv.createTrackbar('minS','cam',0,255,nothing)
-cv.createTrackbar('maxS','cam',0,255,nothing)
-cv.createTrackbar('minV','cam',0,255,nothing)
-cv.createTrackbar('maxV','cam',0,255,nothing)
-cv.setTrackbarPos("minH",'cam',5)
-cv.setTrackbarPos('maxH','cam',30)
-cv.setTrackbarPos('maxS','cam',255)
-cv.setTrackbarPos('maxV','cam',255)
+cv.createTrackbar('minH, minB','cam',0,255,nothing)
+cv.createTrackbar('maxH, maxB','cam',0,255,nothing)
+cv.createTrackbar('minS, minG','cam',0,255,nothing)
+cv.createTrackbar('maxS, maxG','cam',0,255,nothing)
+cv.createTrackbar('minV, minR','cam',0,255,nothing)
+cv.createTrackbar('maxV, maxR','cam',0,255,nothing)
+cv.setTrackbarPos("minH, minB",'cam',0)
+cv.setTrackbarPos('maxH, maxB','cam',255)
+cv.setTrackbarPos('maxS, maxG','cam',255)
+cv.setTrackbarPos('maxV, maxR','cam',255)
 
-frame = cv.imread("/home/bil/git_code/work/Rakamlar(cutted)/0/0_1/photo-1663833351517.jpg")
+frame = cv.imread("/home/bil/Documents/Rakamlar/0/0_0/photo-1663832565581.jpg")
 frame = cv.GaussianBlur(frame,(5,5),1)
 while True:
     
     
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-
-    minH = cv.getTrackbarPos('minH','cam')
-    maxH = cv.getTrackbarPos('maxH','cam')
-    minS = cv.getTrackbarPos('minS','cam')
-    maxS = cv.getTrackbarPos('maxS','cam')
-    minV = cv.getTrackbarPos('minV','cam')
-    maxV = cv.getTrackbarPos('maxV','cam')
+    hsv = frame
+    minH = cv.getTrackbarPos('minH, minB','cam')
+    maxH = cv.getTrackbarPos('maxH, maxB','cam')
+    minS = cv.getTrackbarPos('minS, minG','cam')
+    maxS = cv.getTrackbarPos('maxS, maxG','cam')
+    minV = cv.getTrackbarPos('minV, minR','cam')
+    maxV = cv.getTrackbarPos('maxV, maxR','cam')
 
     lower_bound = np.array([minH,minS,minV])
     upper_bound = np.array([maxH,maxS,maxV])
