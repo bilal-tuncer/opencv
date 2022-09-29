@@ -14,7 +14,7 @@ def req(path,projectName,label,name):
         "ImgStr" : img_str,
         "W" : 128,
         "H" : 128,
-        "IsGray" : 0,
+        "IsGray" : 1,
         "ProjectName" : projectName,
         "Label" : label,
         "Name" : name
@@ -26,17 +26,17 @@ def req(path,projectName,label,name):
     print(res.content)
 
 if __name__ == "__main__":
-    
-    path = "/home/bil/Documents/Rakamlar(RGB)/4"
-    projectName = "rakamlar4"
-    
-    for tempdir in os.listdir(path):
-        label = "label{}".format(tempdir[2])
-        inPath = path + "/"+ tempdir
-        j = 1
-        for file in os.listdir(inPath):
-            name = "tmp{}".format(j)
-            file_path = inPath + "/" + file
-            req(file_path,projectName,label,name)
-            print(label,name,file_path)
-            j +=1
+    for i in range(0,10):
+        path = "/home/bil/Documents/Rakamlar(mask)/{}".format(i)
+        projectName = "rakamlar{}-gray".format(i)
+        
+        for tempdir in os.listdir(path):
+            label = "label{}".format(tempdir[2])
+            inPath = path + "/"+ tempdir
+            j = 1
+            for file in os.listdir(inPath):
+                name = "tmp{}".format(j)
+                file_path = inPath + "/" + file
+                req(file_path,projectName,label,name)
+                print(projectName, label,name,file_path)
+                j +=1

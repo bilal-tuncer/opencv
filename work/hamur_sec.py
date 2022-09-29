@@ -17,7 +17,7 @@ cv.setTrackbarPos('maxH, maxB','cam',255)
 cv.setTrackbarPos('maxS, maxG','cam',255)
 cv.setTrackbarPos('maxV, maxR','cam',255)
 
-frame = cv.imread("/home/bil/Documents/Rakamlar/0/0_0/photo-1663832565581.jpg")
+frame = cv.imread("/home/bil/Documents/Rakamlar/0/0_0/photo-1664375053484.jpg")
 frame = cv.GaussianBlur(frame,(5,5),1)
 while True:
     
