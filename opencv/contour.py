@@ -36,5 +36,6 @@ for i in bcont:
 bcnt = big_conts[-1]
 cv.drawContours(img0,[bcnt],-1,(0,0,255),2)
 
+cv.imshow("mask",black)
 cv.imshow("nike", img0)
 cv.waitKey(0)

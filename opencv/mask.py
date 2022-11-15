@@ -16,5 +16,6 @@ res = cv.add(res1, res2)
 
 img[200:row+200,200:clm+200] = res
 
+img = cv.pyrDown(img)
 cv.imshow("mask",img)
 cv.waitKey(0)

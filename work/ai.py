@@ -27,9 +27,10 @@ def req(path,projectName,label,name):
 
 if __name__ == "__main__":
     for i in range(0,10):
-        path = "/home/bil/Documents/Rakamlar(mask)/{}".format(i)
-        projectName = "rakamlar{}-gray".format(i)
-        
+        #path = "/home/bil/Documents/Rakamlar(mask)/{}".format(i)
+        #projectName = "rakamlar{}-gray".format(i)
+        path = "/home/bil/Downloads/Rakamlar/0/"
+        projectName = "test1"
         for tempdir in os.listdir(path):
             label = "label{}".format(tempdir[2])
             inPath = path + "/"+ tempdir
@@ -40,3 +41,4 @@ if __name__ == "__main__":
                 req(file_path,projectName,label,name)
                 print(projectName, label,name,file_path)
                 j +=1
+                sys.exit()

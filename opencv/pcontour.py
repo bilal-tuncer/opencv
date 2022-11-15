@@ -47,7 +47,7 @@ for i in bcont:
             big_conts.append(i)
 bcnt = big_conts[-1]
 cv.drawContours(img1,[bcnt],-1,(0,0,255),2)
-
+cv.imshow("shapes",black)
 cv.imshow("w_point",img1)
 cv.imshow("w_area", img0)
 cv.waitKey(0)

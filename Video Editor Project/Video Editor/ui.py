@@ -9,7 +9,7 @@ from gi.repository import GdkPixbuf
 from ui_helper import *
 import os
 
-WIN_WIDTH = 600
+WIN_WIDTH = 350
 
 class inFile(Gtk.Window):
     in_fp = None
