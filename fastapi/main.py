@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Response
-from fastapi.responses import StreamingResponse, RedirectResponse
+from fastapi.responses import StreamingResponse
 from webcam import webcam
-import asyncio
 
 app = FastAPI()
 cam = webcam()
